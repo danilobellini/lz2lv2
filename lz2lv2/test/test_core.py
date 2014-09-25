@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Created on Thu Sep 25 05:06:27 2014
+# License is GPLv3, see COPYING.txt for more details.
 # @author: Danilo de Jesus da Silva Bellini
 
 import pytest
@@ -11,6 +12,7 @@ from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
                     ttl_single_uri_data, get_prefixes)
 
 
+@p("extra_space", [True, False, None])
 class TestMetadata2TTL(object):
 
   src = "\n".join([
@@ -29,7 +31,9 @@ class TestMetadata2TTL(object):
   expected_code = "\n".join([
     '<http://something.just.to/test>',
     '  a lv2:Plugin;',
+    '',
     '  lv2:binary <sometest.so>;',
+    '',
     '  lv2:port [',
     '    a lv2:AudioPort, lv2:InputPort;',
     '    lv2:index 0;',
@@ -41,15 +45,22 @@ class TestMetadata2TTL(object):
     '    lv2:symbol "Out";',
     '    lv2:name "Out";',
     '  ];',
+    '',
     '  doap:name "test".',
   ])
 
-  def test_class_with_just_name_and_uri(self):
+  def test_class_with_just_name_and_uri(self, extra_space):
     ns = run_source(self.src, self.fname)
-    expected = "\n".join(self.expected_prefixes + ["", self.expected_code])
-    assert expected == metadata2ttl(ns2metadata(ns))
 
-  def test_class_with_name_uri_and_docstring(self):
+    exp_code = self.expected_code
+    if extra_space is False:
+      exp_code = exp_code.replace("\n\n", "\n")
+    expected = "\n".join(self.expected_prefixes + ["", exp_code])
+
+    kwargs = {} if extra_space is None else {"extra_space": extra_space}
+    assert expected == metadata2ttl(ns2metadata(ns), **kwargs)
+
+  def test_class_with_name_uri_and_docstring(self, extra_space):
     docstring = "\n".join(['"""',
                            'this is a',
                            'multiline docstring',
@@ -58,11 +69,18 @@ class TestMetadata2TTL(object):
     prefixes = self.expected_prefixes + [
       "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema>."
     ]
-    expected = "\n".join(prefixes + ["", self.expected_code[:-1] + ";",
-                                     docstring.join(["  rdfs:comment ", "."])
-                        ])
+
+    exp_code = "\n".join(["",
+      self.expected_code[:-1] + ";\n",
+      docstring.join(["  rdfs:comment ", "."])
+    ])
+    if extra_space is False:
+      exp_code = exp_code.replace("\n\n", "\n")
+    expected = "\n".join(prefixes + [exp_code])
     ns = run_source(code, self.fname)
-    assert expected == metadata2ttl(ns2metadata(ns))
+
+    kwargs = {} if extra_space is None else {"extra_space": extra_space}
+    assert expected == metadata2ttl(ns2metadata(ns), **kwargs)
 
 
 class TestTTLTokens(object):
@@ -152,7 +170,8 @@ class TestTTLSingleURIData(object):
 
   @p("start_indent_level", [0, 1, 2])
   @p("indent_size", [2, 3, 4])
-  def test_single_level(self, start_indent_level, indent_size):
+  @p("extra_space", [True, False])
+  def test_single_level(self, start_indent_level, indent_size, extra_space):
     mdata = OrderedDict([
       ("x", "there's some text here".split()),
       ("y", 1),
@@ -161,12 +180,13 @@ class TestTTLSingleURIData(object):
     ])
     frags = list(ttl_single_uri_data(mdata,
                                      start_indent_level=start_indent_level,
-                                     indent_size=indent_size))
+                                     indent_size=indent_size,
+                                     extra_space=extra_space))
     tokens = list(ttl_tokens(mdata, main=True))
     assert [el for el in frags if el.strip()] == tokens
     source = "".join(frags)
     size = indent_size * start_indent_level
-    expected_source = "\n".join([
+    expected_source = ("\n" * (1 + extra_space)).join([
       " " * size + "x there's, some, text, here;",
       " " * size + "y 1;",
       " " * size + "z a, few, more, words;",

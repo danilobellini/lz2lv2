@@ -90,13 +90,27 @@ def ttl_tokens(item, main=False):
     yield str(item)
 
 
-def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2):
+def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2,
+                        extra_space=True):
   """
   String with the Turtle code for a single URI.
 
   Alike to ``ttl_tokens``, but already prepared for a whole URI data (i.e.,
   ``main = True``) and yields extra spacing "pseudo-tokens". Join together
   to get an aligned Turtle code.
+
+  Parameters
+  ----------
+  mdata :
+    A dictionary with the whole metadata for an URI.
+  start_indent_level :
+    Choose whether there's a starting indentation step for the generated code.
+  indent_size :
+    Length for the indentation step, i.e., the amount of spaces to be used.
+  extra_space :
+    Boolean to choose whether there should be an extra space between each
+    "triple" (a ``mdata`` item, in this implementation "prefix:name" is just
+    a single key) in the main "collection" (``mdata`` itself).
   """
   indent_level = start_indent_level
   tokens = Stream(ttl_tokens(mdata, main=True))
@@ -115,6 +129,8 @@ def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2):
     elif token == ";":
       yield token
       yield "\n"
+      if extra_space and indent_level == start_indent_level:
+        yield "\n"
       yield " " * indent_size * (indent_level - (tokens.peek(1) == ["]"]))
       new_line = True
     elif token in [",", "."]:
@@ -141,9 +157,9 @@ def get_prefixes(tokens):
   return prefixes
 
 
-def metadata2ttl(mdata):
+def metadata2ttl(mdata, **kwargs):
   """ Metadata object to Turtle (ttl) source code string. """
-  frags = thub(ttl_single_uri_data(mdata), 2)
+  frags = thub(ttl_single_uri_data(mdata, **kwargs), 2)
   plugin_metadata_code = "".join(frags)
   prefixes = get_prefixes(frags)
   prefix_template = "@prefix {prefix}: <{uri}>.\n"
