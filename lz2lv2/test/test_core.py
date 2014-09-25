@@ -7,13 +7,9 @@ import pytest
 p = pytest.mark.parametrize
 
 from collections import OrderedDict
-from ..core import run_source, ns2metadata, metadata2ttl, ttl_tokens
+from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
+                    ttl_single_uri_data)
 
-def oneliner_ttl(ttl):
-  return " ".join(el.strip() for el in ttl.splitlines() if el)
-
-def compare_ttl(a, b):
-  assert oneliner_ttl(a) == oneliner_ttl(b)
 
 def test_class_with_just_name_and_uri():
   src = "\n".join([
@@ -25,17 +21,25 @@ def test_class_with_just_name_and_uri():
   expected = "\n".join([
     '@prefix lv2: <http://lv2plug.in/ns/lv2core>.',
     '@prefix doap: <http://usefulinc.com/ns/doap>.',
+    '',
     '<http://something.just.to/test>',
     '  a lv2:Plugin;',
     '  lv2:binary <sometest.so>;',
-    '  lv2:port [ a lv2:AudioPort, lv2:InputPort; lv2:index 0;',
-    '               lv2:symbol "In"; lv2:name "In"; ],',
-    '           [ a lv2:AudioPort, lv2:OutputPort; lv2:index 1;',
-    '               lv2:symbol "Out"; lv2:name "Out"; ];',
+    '  lv2:port [',
+    '    a lv2:AudioPort, lv2:InputPort;',
+    '    lv2:index 0;',
+    '    lv2:symbol "In";',
+    '    lv2:name "In";',
+    '  ], [',
+    '    a lv2:AudioPort, lv2:OutputPort;',
+    '    lv2:index 1;',
+    '    lv2:symbol "Out";',
+    '    lv2:name "Out";',
+    '  ];',
     '  doap:name "test".',
   ])
   ns = run_source(src, fname)
-  compare_ttl(expected, metadata2ttl(ns2metadata(ns)))
+  assert expected == metadata2ttl(ns2metadata(ns))
 
 
 class TestTTLTokens(object):
@@ -113,3 +117,36 @@ class TestTTLTokens(object):
       expected.append(".")
     tokens = ttl_tokens(mdata) if main is None else ttl_tokens(mdata, main)
     assert list(tokens) == expected
+
+  def test_empty_main_true(self):
+    assert list(ttl_tokens({}, main=True)) == ["."]
+
+
+class TestTTLSingleURIData(object):
+
+  def test_empty(self): # 2 spaces is the default indentation
+    assert list(ttl_single_uri_data({})) == ["  ", "."]
+
+  @p("start_indent_level", [0, 1, 2])
+  @p("indent_size", [2, 3, 4])
+  def test_single_level(self, start_indent_level, indent_size):
+    mdata = OrderedDict([
+      ("x", "there's some text here".split()),
+      ("y", 1),
+      ("z", "a few more words".split()),
+      ("w", 2),
+    ])
+    frags = list(ttl_single_uri_data(mdata,
+                                     start_indent_level=start_indent_level,
+                                     indent_size=indent_size))
+    tokens = list(ttl_tokens(mdata, main=True))
+    assert [el for el in frags if el.strip()] == tokens
+    source = "".join(frags)
+    size = indent_size * start_indent_level
+    expected_source = "\n".join([
+      " " * size + "x there's, some, text, here;",
+      " " * size + "y 1;",
+      " " * size + "z a, few, more, words;",
+      " " * size + "w 2.",
+    ])
+    assert source == expected_source

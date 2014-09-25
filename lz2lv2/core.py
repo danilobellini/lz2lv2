@@ -8,6 +8,7 @@ lz2lv2 core functions.
 """
 
 from collections import OrderedDict
+from audiolazy import Stream
 import os
 
 ttl_prefixes = {
@@ -68,37 +69,66 @@ def ttl_tokens(item, main=False):
         yield ","
   elif isinstance(item, dict):
     size = len(item)
-    if not main: yield "["
+    if not main:
+      yield "["
     for idx, (k, v) in enumerate(item.items(), 1):
       yield k
       for token in ttl_tokens(v): yield token
-      if main and idx == size: # Last token
-        yield "."
-      else:
+      if not(main and idx == size):
         yield ";"
-    if not main: yield "]"
+    if main:
+      yield "."
+    else:
+      yield "]"
   else:
     yield str(item)
 
 
-def ttl_representation(item):
-  if isinstance(item, list):
-    return ", ".join(ttl_representation(el) for el in item)
-  if isinstance(item, dict):
-    return "[\n" + ";\n".join(k + " " + ttl_representation(v)
-                              for k, v in item.items()) + ";\n]"
-  else:
-    return str(item)
+def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2):
+  """
+  String with the Turtle code for a single URI.
+
+  Alike to ``ttl_tokens``, but already prepared for a whole URI data (i.e.,
+  ``main = True``) and yields extra spacing "pseudo-tokens". Join together
+  to get an aligned Turtle code.
+  """
+  indent_level = start_indent_level
+  tokens = Stream(ttl_tokens(mdata, main=True))
+  if tokens.peek(1): # Has at least one token
+    yield " " * indent_size * indent_level
+  new_line = True
+  for token in tokens:
+    if token == "[":
+      if not new_line: yield " "
+      yield token
+      indent_level += 1
+      if tokens.peek(1) != ["]"]:
+        yield "\n"
+        yield " " * indent_size * indent_level
+      new_line = True
+    elif token == ";":
+      yield token
+      yield "\n"
+      yield " " * indent_size * (indent_level - (tokens.peek(1) == ["]"]))
+      new_line = True
+    elif token in [",", "."]:
+      yield token
+      new_line = False
+    else:
+      if not new_line: yield " "
+      yield token
+      if token == "]":
+        indent_level -= 1
+      new_line = False
 
 
 def metadata2ttl(mdata):
   """ Metadata object to Turtle (ttl) source code string. """
-  # Build prefixes
   prefixes = ["lv2", "doap"]
   prefix_template = "@prefix {prefix}: <{uri}>.\n"
   prefixes_code = "".join(prefix_template.format(prefix=prefix,
                                                  uri=ttl_prefixes[prefix])
                           for prefix in prefixes)
-  plugin_uri = "\n<{}>".format(mdata.uri)
-  plugin_metadata_code = ttl_representation(mdata)[1:-3]
-  return "".join([prefixes_code, plugin_uri, plugin_metadata_code, "."])
+  plugin_uri = "\n<{}>\n".format(mdata.uri)
+  plugin_metadata_code = "".join(ttl_single_uri_data(mdata))
+  return "".join([prefixes_code, plugin_uri, plugin_metadata_code])
