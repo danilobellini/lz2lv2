@@ -21,6 +21,7 @@ metadata = dict(
   name = package_name,
   packages = [package_name],
   install_requires = ["audiolazy"],
+  entry_points = {"console_scripts": ["lz2lv2 = lz2lv2.cli:main"]},
 )
 
 metadata["classifiers"] = """
