@@ -56,7 +56,7 @@ def ns2metadata(ns):
   return mdata
 
 
-def ttl_tokens(item):
+def ttl_tokens(item, main=False):
   """
   From an item in a metadata dictionary, generates Turtle tokens as strings.
   """
@@ -67,12 +67,16 @@ def ttl_tokens(item):
       if idx != size: # Not the last
         yield ","
   elif isinstance(item, dict):
-    yield "["
+    size = len(item)
+    if not main: yield "["
     for idx, (k, v) in enumerate(item.items(), 1):
       yield k
       for token in ttl_tokens(v): yield token
-      yield ";"
-    yield "]"
+      if main and idx == size: # Last token
+        yield "."
+      else:
+        yield ";"
+    if not main: yield "]"
   else:
     yield str(item)
 

@@ -3,6 +3,9 @@
 # Created on Thu Sep 25 05:06:27 2014
 # @author: Danilo de Jesus da Silva Bellini
 
+import pytest
+p = pytest.mark.parametrize
+
 from collections import OrderedDict
 from ..core import run_source, ns2metadata, metadata2ttl, ttl_tokens
 
@@ -90,7 +93,8 @@ class TestTTLTokens(object):
                      "y", "e", ",", "Ff", ";", "]"]
     assert list(ttl_tokens(mdata)) == expected
 
-  def test_dict_with_dict_inside(self):
+  @p("main", [True, False, None])
+  def test_dict_with_dict_inside(self, main):
     mdata = OrderedDict([
       ("qq", ["ww", "ee"]),
       ("rr", ["tt", "yy", OrderedDict([
@@ -104,4 +108,8 @@ class TestTTLTokens(object):
                           "f", "g", ";",
                      "]", ",", "h", ";",
                 "]"]
-    assert list(ttl_tokens(mdata)) == expected
+    if main: # The main dict doesn't have square brackets and ends with a dot
+      expected = expected[1:-2]
+      expected.append(".")
+    tokens = ttl_tokens(mdata) if main is None else ttl_tokens(mdata, main)
+    assert list(tokens) == expected
