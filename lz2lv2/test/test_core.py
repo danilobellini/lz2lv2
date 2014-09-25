@@ -11,17 +11,22 @@ from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
                     ttl_single_uri_data)
 
 
-def test_class_with_just_name_and_uri():
+class TestMetadata2TTL(object):
+
   src = "\n".join([
     "class Metadata:",
     "  name = 'test'",
     '  uri = "http://something.just.to/test"',
   ])
+
   fname = "/some/path/to/sometest.py"
-  expected = "\n".join([
+
+  expected_prefixes = [
     '@prefix lv2: <http://lv2plug.in/ns/lv2core>.',
     '@prefix doap: <http://usefulinc.com/ns/doap>.',
-    '',
+  ]
+
+  expected_code = "\n".join([
     '<http://something.just.to/test>',
     '  a lv2:Plugin;',
     '  lv2:binary <sometest.so>;',
@@ -38,8 +43,26 @@ def test_class_with_just_name_and_uri():
     '  ];',
     '  doap:name "test".',
   ])
-  ns = run_source(src, fname)
-  assert expected == metadata2ttl(ns2metadata(ns))
+
+  def test_class_with_just_name_and_uri(self):
+    ns = run_source(self.src, self.fname)
+    expected = "\n".join(self.expected_prefixes + ["", self.expected_code])
+    assert expected == metadata2ttl(ns2metadata(ns))
+
+  def test_class_with_name_uri_and_docstring(self):
+    docstring = "\n".join(['"""',
+                           'this is a',
+                           'multiline docstring',
+                           '"""'])
+    code = "\n".join([docstring, self.src])
+    prefixes = self.expected_prefixes + [
+      "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema>."
+    ]
+    expected = "\n".join(prefixes + ["", self.expected_code[:-1] + ";",
+                                     docstring.join(["  rdfs:comment ", "."])
+                        ])
+    ns = run_source(code, self.fname)
+    assert expected == metadata2ttl(ns2metadata(ns))
 
 
 class TestTTLTokens(object):

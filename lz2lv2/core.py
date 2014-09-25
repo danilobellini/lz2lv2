@@ -14,6 +14,7 @@ import os
 ttl_prefixes = {
   "lv2"  : "http://lv2plug.in/ns/lv2core",
   "doap" : "http://usefulinc.com/ns/doap",
+  "rdfs" : "http://www.w3.org/2000/01/rdf-schema",
 }
 
 def run_source(src, fname):
@@ -54,6 +55,11 @@ def ns2metadata(ns):
     ("doap:name", [mdict["name"].join('""')]),
   ])
   mdata.uri = mdict["uri"]
+
+  plugin_docstring = ns.get("__doc__", None)
+  if plugin_docstring:
+    mdata["rdfs:comment"] = '"""{}"""'.format(plugin_docstring)
+
   return mdata
 
 
@@ -125,6 +131,8 @@ def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2):
 def metadata2ttl(mdata):
   """ Metadata object to Turtle (ttl) source code string. """
   prefixes = ["lv2", "doap"]
+  if "rdfs:comment" in mdata:
+    prefixes.append("rdfs")
   prefix_template = "@prefix {prefix}: <{uri}>.\n"
   prefixes_code = "".join(prefix_template.format(prefix=prefix,
                                                  uri=ttl_prefixes[prefix])
