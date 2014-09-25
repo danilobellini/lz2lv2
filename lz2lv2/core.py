@@ -8,7 +8,7 @@ lz2lv2 core functions.
 """
 
 from collections import OrderedDict
-from audiolazy import Stream
+from audiolazy import Stream, thub
 import os
 
 ttl_prefixes = {
@@ -128,15 +128,27 @@ def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2):
       new_line = False
 
 
+def get_prefixes(tokens):
+  """
+  Returns a list of prefixes used by the given tokens.
+  """
+  prefixes = []
+  for token in tokens:
+    if not token.startswith('"') and ":" in token: # Has prefix
+      prefix = token.split(":")[0]
+      if prefix not in prefixes:
+        prefixes.append(prefix)
+  return prefixes
+
+
 def metadata2ttl(mdata):
   """ Metadata object to Turtle (ttl) source code string. """
-  prefixes = ["lv2", "doap"]
-  if "rdfs:comment" in mdata:
-    prefixes.append("rdfs")
+  frags = thub(ttl_single_uri_data(mdata), 2)
+  plugin_metadata_code = "".join(frags)
+  prefixes = get_prefixes(frags)
   prefix_template = "@prefix {prefix}: <{uri}>.\n"
   prefixes_code = "".join(prefix_template.format(prefix=prefix,
                                                  uri=ttl_prefixes[prefix])
                           for prefix in prefixes)
   plugin_uri = "\n<{}>\n".format(mdata.uri)
-  plugin_metadata_code = "".join(ttl_single_uri_data(mdata))
   return "".join([prefixes_code, plugin_uri, plugin_metadata_code])

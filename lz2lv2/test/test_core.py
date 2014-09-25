@@ -8,7 +8,7 @@ p = pytest.mark.parametrize
 
 from collections import OrderedDict
 from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
-                    ttl_single_uri_data)
+                    ttl_single_uri_data, get_prefixes)
 
 
 class TestMetadata2TTL(object):
@@ -173,3 +173,18 @@ class TestTTLSingleURIData(object):
       " " * size + "w 2.",
     ])
     assert source == expected_source
+
+
+class TestGetPrefixes(object):
+
+  def test_empty(self):
+    assert get_prefixes([]) == []
+    assert get_prefixes(iter({})) == []
+
+  def test_no_prefix(self):
+    assert get_prefixes(["1", "3", "text", '"an:string"']) == []
+    assert get_prefixes(iter({"": 1, "abc": 2})) == []
+
+  def test_repeated_prefixes(self):
+    assert get_prefixes(["1", "3:pref", "a:text", "a:string"]) == ["3", "a"]
+    assert get_prefixes(["ac:d", "ab:d", "ba:", "ac:4"]) == ["ac", "ab", "ba"]
