@@ -110,18 +110,27 @@ class TestNS2Metadata(object):
     assert inputs == 0
     assert outputs == 0
 
+  def mdata_basics_tested(self, mcls, fname, inputs=1, outputs=1, **kwargs):
+    """
+    Return mdata metadata object (dictionary with uri attribute) build from
+    the mcls (Metadata class), fname (Python plugin file name), number of
+    I/O ports and extra keyword arguments for the ns2metadata input namespace.
+    """
+    ns = dict(Metadata=mcls, __file__=fname, **kwargs)
+    mdata = ns2metadata(ns)
+    self.ensure_minimal(mdata)
+    self.ensure_ports(mdata, inputs=inputs, outputs=outputs)
+    assert mdata.uri == mcls.uri
+    assert mdata["a"] == ["lv2:Plugin"]
+    assert mdata["lv2:binary"] == ["<{}.so>".format(fname.rsplit(".", 1)[0])]
+    assert mdata["doap:name"] == ['"{}"'.format(mcls.name)]
+    return mdata
+
   def test_simple_class(self):
     class Metadata:
       name = "SimpleTest"
       uri = "http://far.from/here"
-    ns = dict(Metadata=Metadata, __file__="afile.py")
-    mdata = ns2metadata(ns)
-    self.ensure_minimal(mdata)
-    self.ensure_ports(mdata, inputs=1, outputs=1)
-    assert mdata.uri == Metadata.uri
-    assert mdata["a"] == ["lv2:Plugin"]
-    assert mdata["lv2:binary"] == ["<afile.so>"]
-    assert mdata["doap:name"] == ['"{}"'.format(Metadata.name)]
+    mdata = self.mdata_basics_tested(Metadata, "afile.py")
     assert "rdfs:comment" not in mdata
 
   @p("docstring", ["", None, "\n".join(["", "Docstring for this test", ""])])
@@ -129,14 +138,7 @@ class TestNS2Metadata(object):
     class Metadata:
       name = "AnotherTest"
       uri = "http://here.i.am/again"
-    ns = dict(Metadata=Metadata, __file__="otherf.py", __doc__=docstring)
-    mdata = ns2metadata(ns)
-    self.ensure_minimal(mdata)
-    self.ensure_ports(mdata, inputs=1, outputs=1)
-    assert mdata.uri == Metadata.uri
-    assert mdata["a"] == ["lv2:Plugin"]
-    assert mdata["lv2:binary"] == ["<otherf.so>"]
-    assert mdata["doap:name"] == ['"{}"'.format(Metadata.name)]
+    mdata = self.mdata_basics_tested(Metadata, "otherf.py", __doc__=docstring)
     if docstring:
       assert mdata["rdfs:comment"] == ['"""{}"""'.format(docstring)]
     else:
@@ -157,14 +159,7 @@ class TestNS2Metadata(object):
     if author_email is not None:
       Metadata.author_email = author_email
 
-    ns = dict(Metadata=Metadata, __file__="auth.py")
-    mdata = ns2metadata(ns)
-    self.ensure_minimal(mdata)
-    self.ensure_ports(mdata, inputs=1, outputs=1)
-    assert mdata.uri == Metadata.uri
-    assert mdata["a"] == ["lv2:Plugin"]
-    assert mdata["lv2:binary"] == ["<auth.so>"]
-    assert mdata["doap:name"] == ['"{}"'.format(Metadata.name)]
+    mdata = self.mdata_basics_tested(Metadata, "auth.py")
 
     if all(el is None for el in [author, author_homepage, author_email]):
       assert "doap:developer" not in mdata
