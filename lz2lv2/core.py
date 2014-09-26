@@ -7,6 +7,8 @@
 lz2lv2 core functions.
 """
 
+from __future__ import division
+
 from collections import OrderedDict
 from audiolazy import Stream, thub
 import os
@@ -18,12 +20,20 @@ ttl_prefixes = {
   "rdfs" : "http://www.w3.org/2000/01/rdf-schema",
 }
 
+preamble = """
+from audiolazy import *
+s, Hz = sHz(rate)
+ms = 1e-3 * s
+kHz = 1e3 * Hz
+"""
+
 def run_source(src, fname):
   """
   Run the given source code string object, supposed to be from file ``fname``,
   and returns the resulting locals namespace.
   """
-  ns = dict(__file__ = fname, z=2)
+  ns = dict(__file__ = fname, rate = 1)
+  exec(preamble, ns, ns)
   exec(src, ns, ns)
   return ns
 

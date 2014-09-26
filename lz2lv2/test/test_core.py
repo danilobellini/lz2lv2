@@ -7,9 +7,69 @@
 import pytest
 p = pytest.mark.parametrize
 
+import audiolazy, types
 from collections import OrderedDict
 from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
                     ttl_single_uri_data, get_prefixes)
+
+
+class TestRunSource(object):
+
+  def test_empty(self):
+    ns = run_source("", "named.py")
+    assert ns["__file__"] == "named.py"
+
+    # Some few "global" values that might be used by the plugin
+    for k in ["rate", "s", "Hz", "ms", "kHz"]:
+      assert k in ns
+      assert isinstance(ns[k], int if k == "rate" else float)
+
+    # Ensure AudioLazy was imported
+    for k in audiolazy.__all__:
+      assert ns[k] is getattr(audiolazy, k)
+
+    s, Hz = audiolazy.sHz(1)
+    assert ns["rate"] == 1
+    assert ns["s"] == s
+    assert ns["Hz"] == Hz
+    assert ns["ms"] == 1e-3 * s
+    assert ns["kHz"] == 1e3 * Hz
+
+  def test_using_constants(self):
+    """
+    Ensure ``rate``, ``s``, ``ms``, ``Hz`` and ``kHz`` were available in the
+    namespace before running the given code.
+    """
+    code = "\n".join([
+      "duration = 22.3*s - 430*ms",
+      "freq = 3.4*kHz + 28*Hz",
+      "secs_per_sample = 1 / rate",
+    ])
+
+    ns = run_source(code, "with_consts.py")
+    assert ns["__file__"] == "with_consts.py"
+
+    for k in ["duration", "freq", "secs_per_sample"]:
+      assert k in ns
+    assert isinstance(ns["secs_per_sample"], float) # __future__ division flag
+    assert ns["secs_per_sample"] == 1.0 / ns["rate"]
+
+  def test_using_audiolazy(self):
+    """ Ensure AudioLazy was loaded before running the given code """
+    code = "\n".join([
+      "poly = 2 * x + 1",
+      "filt = 1 / (1 - .3 * z ** -3)",
+      "stft_hann = stft(wnd=window.hann, ola_wnd=window.hann)",
+    ])
+
+    ns = run_source(code, "with_audiolazy.py")
+    assert ns["__file__"] == "with_audiolazy.py"
+
+    for k in ["poly", "filt", "stft_hann"]:
+      assert k in ns
+    assert isinstance(ns["poly"], audiolazy.Poly)
+    assert isinstance(ns["filt"], audiolazy.ZFilter)
+    assert isinstance(ns["stft_hann"], types.FunctionType)
 
 
 class TestNS2Metadata(object):
