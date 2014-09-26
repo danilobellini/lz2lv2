@@ -86,6 +86,10 @@ def ns2metadata(ns):
       mdata.setdefault("doap:maintainer", OrderedDict())["foaf:mbox"] = \
         ["<mailto:{}>".format(mdict["author_email"])]
 
+  # Add the small license acronym (when available)
+  if "license" in mdict:
+    mdata["doap:license"] = ["<{}>".format(mdict["license"])]
+
   # Last information to add: the comment from the docstring
   plugin_docstring = ns.get("__doc__", None)
   if plugin_docstring:

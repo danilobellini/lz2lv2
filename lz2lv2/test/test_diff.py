@@ -46,6 +46,8 @@ diff_example_expected_ttl = '''
     foaf:mbox <mailto:danilo.bellini@gmail.com>;
   ];
 
+  doap:license <GPLv3>;
+
   rdfs:comment """
 Simple diff FIR linear filter LV2 plugin with AudioLazy.
 """.

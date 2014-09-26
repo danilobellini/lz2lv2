@@ -186,6 +186,14 @@ class TestNS2Metadata(object):
       else:
         assert "foaf:mbox" not in mdata_dev
 
+  def test_class_with_license(self):
+    class Metadata:
+      name = "HaveLicense"
+      license = "FAKE"
+      uri = "http://i.know.that.license.is/fake"
+    mdata = self.mdata_basics_tested(Metadata, "licensed.py")
+    assert mdata["doap:license"] == ['<{}>'.format(Metadata.license)]
+
 
 @p("extra_space", [True, False, None])
 class TestMetadata2TTL(object):
