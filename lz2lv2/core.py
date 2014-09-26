@@ -14,6 +14,7 @@ import os
 ttl_prefixes = {
   "lv2"  : "http://lv2plug.in/ns/lv2core",
   "doap" : "http://usefulinc.com/ns/doap",
+  "foaf" : "http://xmlns.com/foaf/0.1",
   "rdfs" : "http://www.w3.org/2000/01/rdf-schema",
 }
 
@@ -55,6 +56,20 @@ def ns2metadata(ns):
     ("doap:name", [mdict["name"].join('""')]),
   ])
   mdata.uri = mdict["uri"]
+
+  # Author as both the developer and maintainer in one single metadata
+  if "author" in mdict:
+    mdata.setdefault("doap:developer", OrderedDict())["foaf:name"] = \
+      mdata.setdefault("doap:maintainer", OrderedDict())["foaf:name"] = \
+        ['"{}"'.format(mdict["author"])]
+  if "author_homepage" in mdict:
+    mdata.setdefault("doap:developer", OrderedDict())["foaf:homepage"] = \
+      mdata.setdefault("doap:maintainer", OrderedDict())["foaf:homepage"] = \
+        ["<{}>".format(mdict["author_homepage"])]
+  if "author_email" in mdict:
+    mdata.setdefault("doap:developer", OrderedDict())["foaf:mbox"] = \
+      mdata.setdefault("doap:maintainer", OrderedDict())["foaf:mbox"] = \
+        ["<mailto:{}>".format(mdict["author_email"])]
 
   # Last information to add: the comment from the docstring
   plugin_docstring = ns.get("__doc__", None)
@@ -151,7 +166,7 @@ def get_prefixes(tokens):
   """
   prefixes = []
   for token in tokens:
-    if not token.startswith('"') and ":" in token: # Has prefix
+    if token and token[0] not in '"<' and ":" in token: # Has prefix
       prefix = token.split(":")[0]
       if prefix not in prefixes:
         prefixes.append(prefix)

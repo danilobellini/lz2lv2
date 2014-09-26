@@ -82,6 +82,55 @@ class TestNS2Metadata(object):
     else:
       assert "rdfs:comment" not in mdata
 
+  @p("author", ["One Two Three", "Unk Kle Known Klown", "", None])
+  @p("author_homepage", ["http://my.page/", "https://unk.le", "", None])
+  @p("author_email", ["a@b.c", "", None])
+  def test_class_with_author(self, author, author_homepage, author_email):
+    class Metadata:
+      uri = "http://forever.los.../ing_time"
+      name = "TestingAuthors"
+
+    if author is not None:
+      Metadata.author = author
+    if author_homepage is not None:
+      Metadata.author_homepage = author_homepage
+    if author_email is not None:
+      Metadata.author_email = author_email
+
+    ns = dict(Metadata=Metadata, __file__="auth.py")
+    mdata = ns2metadata(ns)
+    self.ensure_minimal(mdata)
+    self.ensure_ports(mdata, inputs=1, outputs=1)
+    assert mdata.uri == Metadata.uri
+    assert mdata["a"] == ["lv2:Plugin"]
+    assert mdata["lv2:binary"] == ["<auth.so>"]
+    assert mdata["doap:name"] == ['"{}"'.format(Metadata.name)]
+
+    if all(el is None for el in [author, author_homepage, author_email]):
+      assert "doap:developer" not in mdata
+      assert "doap:maintainer" not in mdata
+    else:
+      assert "doap:developer" in mdata
+      assert "doap:maintainer" in mdata
+      assert mdata["doap:developer"] == mdata["doap:maintainer"]
+
+      mdata_dev = mdata["doap:developer"]
+
+      if author is not None:
+        assert mdata_dev["foaf:name"] == ['"{}"'.format(author)]
+      else:
+        assert "foaf:name" not in mdata_dev
+
+      if author_homepage is not None:
+        assert mdata_dev["foaf:homepage"] == ['<{}>'.format(author_homepage)]
+      else:
+        assert "foaf:homepage" not in mdata_dev
+
+      if author_email is not None:
+        assert mdata_dev["foaf:mbox"] == ['<mailto:{}>'.format(author_email)]
+      else:
+        assert "foaf:mbox" not in mdata_dev
+
 
 @p("extra_space", [True, False, None])
 class TestMetadata2TTL(object):
