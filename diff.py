@@ -12,5 +12,7 @@ class Metadata:
 
   name = "Diff"
   uri = author_homepage + "/lz2lv2/diff"
+  lv2class = "Filter", "Highpass" # See all classes at
+                                  # http://lv2plug.in/ns/lv2core/
 
-process = 1 + z ** -1
+process = 1 - z ** -1

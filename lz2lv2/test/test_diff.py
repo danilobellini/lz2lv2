@@ -16,7 +16,7 @@ diff_example_expected_ttl = '''
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
 <http://github.com/danilobellini/lz2lv2/diff>
-  a lv2:Plugin;
+  a lv2:Plugin, lv2:FilterPlugin, lv2:HighpassPlugin;
 
   lv2:binary <diff.so>;
 

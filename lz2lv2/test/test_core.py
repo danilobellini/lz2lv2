@@ -7,7 +7,7 @@
 import pytest
 p = pytest.mark.parametrize
 
-import audiolazy, types
+import audiolazy, types, operator
 from collections import OrderedDict
 from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
                     ttl_single_uri_data, get_prefixes)
@@ -121,7 +121,10 @@ class TestNS2Metadata(object):
     self.ensure_minimal(mdata)
     self.ensure_ports(mdata, inputs=inputs, outputs=outputs)
     assert mdata.uri == mcls.uri
-    assert mdata["a"] == ["lv2:Plugin"]
+    if hasattr(mcls, "lv2class"):
+      assert mdata["a"][:1] == ["lv2:Plugin"]
+    else:
+      assert mdata["a"] == ["lv2:Plugin"]
     assert mdata["lv2:binary"] == ["<{}.so>".format(fname.rsplit(".", 1)[0])]
     assert mdata["doap:name"] == ['"{}"'.format(mcls.name)]
     return mdata
@@ -193,6 +196,50 @@ class TestNS2Metadata(object):
       uri = "http://i.know.that.license.is/fake"
     mdata = self.mdata_basics_tested(Metadata, "licensed.py")
     assert mdata["doap:license"] == ['<{}>'.format(Metadata.license)]
+
+  @p("cls", ["Plugin", ""])
+  @p("container", [list, tuple, operator.itemgetter(0)])
+  def test_class_with_empty_lv2_class(self, cls, container):
+    class Metadata:
+      lv2class = container([cls]) # And itemgetter(0) as "no container"
+      name = "Classy"
+      uri = "http://etiquette.is/fake"
+    mdata = self.mdata_basics_tested(Metadata, "has_two_classes...weird.py")
+    assert mdata["a"] == ["lv2:Plugin"]
+
+  @p("cls", ["Utility", "Delay"])
+  @p("container", [list, tuple, operator.itemgetter(0)])
+  def test_class_with_single_specific_lv2_class(self, cls, container):
+    class Metadata:
+      lv2class = container([cls]) # And itemgetter(0) as "no container"
+      name = "Classy"
+      uri = "http://etiquette.is/fake"
+    mdata = self.mdata_basics_tested(Metadata, "has_two_classes...weird.py")
+    assert mdata["a"] == ["lv2:Plugin", "lv2:" + cls + "Plugin"]
+
+  @p(("cls", "classes"), [
+    ("lv2:LimiterPlugin",
+     ("Limiter", "Plugin", "LimiterPlugin", "lv2:Plugin")),
+    ("lv2:FlangerPlugin",
+     ("", "Flanger", "lv2:Plugin", "", "lv2:FlangerPlugin")),
+  ])
+  @p("container", [list, tuple])
+  def test_single_lv2_class_with_redundancy(self, cls, classes, container):
+    class Metadata:
+      lv2class = container(classes)
+      name = "AlmostMultipleInheritance"
+      uri = "http://basically.the.id/is/the#same"
+    mdata = self.mdata_basics_tested(Metadata, "lotsOfAlias.py")
+    assert mdata["a"] == ["lv2:Plugin", cls]
+
+  def test_many_lv2_classes(self):
+    class Metadata:
+      lv2class = "Filter", "EQ", "MultiEQ"
+      name = "AlmostMultipleInheritance"
+      uri = "http://basically.the.id/is/the#same"
+    mdata = self.mdata_basics_tested(Metadata, "lotsOfAlias.py")
+    assert mdata["a"] == ["lv2:Plugin", "lv2:FilterPlugin",
+                          "lv2:EQPlugin", "lv2:MultiEQPlugin"]
 
 
 @p("extra_space", [True, False, None])

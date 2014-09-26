@@ -51,26 +51,44 @@ def ns2metadata(ns):
   """
   mdict = vars(ns["Metadata"])
   fname = os.path.splitext(os.path.split(ns["__file__"])[1])[0]
-  mdata = OrderedDict([
-    ("a", ["lv2:Plugin"]),
-    ("lv2:binary", ["<{}.so>".format(fname)]),
-    ("lv2:port", [
-      OrderedDict([
-        ("a", ["lv2:AudioPort", "lv2:InputPort"]),
-        ("lv2:index", [0]),
-        ("lv2:symbol", ['"In"']),
-        ("lv2:name", ['"In"']),
-      ]),
-      OrderedDict([
-        ("a", ["lv2:AudioPort", "lv2:OutputPort"]),
-        ("lv2:index", [1]),
-        ("lv2:symbol", ['"Out"']),
-        ("lv2:name", ['"Out"']),
-      ]),
-    ]),
-    ("doap:name", [mdict["name"].join('""')]),
-  ])
+  mdata = OrderedDict()
   mdata.uri = mdict["uri"]
+
+  # Plugin LV2 class (SpectralPlugin, UtilityPlugin, DelayPlugin, etc.)
+  mdata["a"] = ["lv2:Plugin"]
+  if "lv2class" in mdict:
+    classes = mdict["lv2class"]
+    if not isinstance(classes, (tuple, list)):
+      classes = [classes]
+    for cls in classes:
+      if not cls.startswith("lv2:"):
+        cls = "lv2:" + cls
+      if not cls.endswith("Plugin"):
+        cls = cls + "Plugin"
+      if cls not in mdata["a"]:
+        mdata["a"].append(cls)
+
+  # Default output filename
+  mdata["lv2:binary"] = ["<{}.so>".format(fname)]
+
+  # Default port assignment
+  mdata["lv2:port"] = [
+    OrderedDict([
+      ("a", ["lv2:AudioPort", "lv2:InputPort"]),
+      ("lv2:index", [0]),
+      ("lv2:symbol", ['"In"']),
+      ("lv2:name", ['"In"']),
+    ]),
+    OrderedDict([
+      ("a", ["lv2:AudioPort", "lv2:OutputPort"]),
+      ("lv2:index", [1]),
+      ("lv2:symbol", ['"Out"']),
+      ("lv2:name", ['"Out"']),
+    ]),
+  ]
+
+  # Plugin name (required by LV2), can't build the plugin without it
+  mdata["doap:name"] = [mdict["name"].join('""')]
 
   # Author as both the developer and maintainer in one single metadata
   if "author" in mdict:
