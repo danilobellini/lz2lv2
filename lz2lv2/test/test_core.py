@@ -12,6 +12,77 @@ from ..core import (run_source, ns2metadata, metadata2ttl, ttl_tokens,
                     ttl_single_uri_data, get_prefixes)
 
 
+class TestNS2Metadata(object):
+
+  def ensure_minimal(self, mdata):
+    for k in ["a", "lv2:binary", "lv2:port", "doap:name"]:
+      assert k in mdata
+    assert hasattr(mdata, "uri")
+    assert mdata.uri # Not empty
+
+  def ensure_ports(self, mdata, inputs, outputs):
+    """
+    Ensure there's exactly a certain amount of input and output ports, with
+    all input ports appearing before (lower indices).
+    """
+    ports = mdata["lv2:port"]
+
+    for port in ports:
+      for k in ["a", "lv2:index", "lv2:symbol", "lv2:name"]:
+        assert k in port
+      assert len(port["lv2:index"]) == 1
+      assert isinstance(port["lv2:index"][0], int)
+
+    sorted_ports = sorted(ports, key=lambda port: port["lv2:index"][0])
+    for idx, port in enumerate(sorted_ports):
+      assert [idx] == port["lv2:index"]
+
+      lv2class = set(port["a"])
+      if inputs:
+        assert lv2class == {"lv2:AudioPort", "lv2:InputPort"}
+        inputs -= 1
+      elif outputs:
+        assert lv2class == {"lv2:AudioPort", "lv2:OutputPort"}
+        outputs -= 1
+      else:
+        raise ValueError("More ports than specified")
+
+    assert inputs == 0
+    assert outputs == 0
+
+  def test_simple_class(self):
+    class Metadata:
+      name = "SimpleTest"
+      uri = "http://far.from/here"
+    ns = dict(Metadata=Metadata, __file__="afile.py")
+    mdata = ns2metadata(ns)
+    self.ensure_minimal(mdata)
+    self.ensure_ports(mdata, inputs=1, outputs=1)
+    assert mdata.uri == Metadata.uri
+    assert mdata["a"] == ["lv2:Plugin"]
+    assert mdata["lv2:binary"] == ["<afile.so>"]
+    assert mdata["doap:name"] == ['"{}"'.format(Metadata.name)]
+    assert "rdfs:comment" not in mdata
+
+  @p("docstring", ["", None, "\n".join(["", "Docstring for this test", ""])])
+  def test_simple_class_with_docstring_dunder(self, docstring):
+    class Metadata:
+      name = "AnotherTest"
+      uri = "http://here.i.am/again"
+    ns = dict(Metadata=Metadata, __file__="otherf.py", __doc__=docstring)
+    mdata = ns2metadata(ns)
+    self.ensure_minimal(mdata)
+    self.ensure_ports(mdata, inputs=1, outputs=1)
+    assert mdata.uri == Metadata.uri
+    assert mdata["a"] == ["lv2:Plugin"]
+    assert mdata["lv2:binary"] == ["<otherf.so>"]
+    assert mdata["doap:name"] == ['"{}"'.format(Metadata.name)]
+    if docstring:
+      assert mdata["rdfs:comment"] == ['"""{}"""'.format(docstring)]
+    else:
+      assert "rdfs:comment" not in mdata
+
+
 @p("extra_space", [True, False, None])
 class TestMetadata2TTL(object):
 

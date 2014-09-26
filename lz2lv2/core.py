@@ -56,9 +56,10 @@ def ns2metadata(ns):
   ])
   mdata.uri = mdict["uri"]
 
+  # Last information to add: the comment from the docstring
   plugin_docstring = ns.get("__doc__", None)
   if plugin_docstring:
-    mdata["rdfs:comment"] = '"""{}"""'.format(plugin_docstring)
+    mdata["rdfs:comment"] = ['"""{}"""'.format(plugin_docstring)]
 
   return mdata
 
