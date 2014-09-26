@@ -7,7 +7,7 @@
 lz2lv2 Command Line Interface module.
 """
 
-import sys
+import sys, os
 from .core import run_source, ns2metadata, metadata2ttl
 
 
@@ -33,5 +33,12 @@ def build_manifest_ttl_data(fname):
 
 def main():
   # A simple interface written mainly for trying.
-  fname = sys.argv[1]
-  print build_manifest_ttl_data(fname)
+  if len(sys.argv) < 3 or sys.argv[1] != "ttl":
+    print("Usage: {} ttl plugin_file.py".format(sys.argv[0]))
+    exit(1)
+
+  fname = sys.argv[2]
+  ttl = build_manifest_ttl_data(fname)
+  out_fname = os.path.splitext(fname)[0] + ".ttl"
+  with open(out_fname, "w") as f:
+    f.write(ttl)
