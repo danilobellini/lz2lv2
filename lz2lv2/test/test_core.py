@@ -204,8 +204,8 @@ class TestMetadata2TTL(object):
   fname = "/some/path/to/sometest.py"
 
   expected_prefixes = [
-    '@prefix lv2: <http://lv2plug.in/ns/lv2core>.',
-    '@prefix doap: <http://usefulinc.com/ns/doap>.',
+    '@prefix lv2: <http://lv2plug.in/ns/lv2core#>.',
+    '@prefix doap: <http://usefulinc.com/ns/doap#>.',
   ]
 
   expected_code = "\n".join([
@@ -247,7 +247,7 @@ class TestMetadata2TTL(object):
                            '"""'])
     code = "\n".join([docstring, self.src])
     prefixes = self.expected_prefixes + [
-      "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema>."
+      "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>."
     ]
 
     exp_code = "\n".join(["",

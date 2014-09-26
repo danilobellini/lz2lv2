@@ -10,10 +10,10 @@ import os
 from ..cli import build_manifest_ttl_data
 
 diff_example_expected_ttl = '''
-@prefix lv2: <http://lv2plug.in/ns/lv2core>.
-@prefix doap: <http://usefulinc.com/ns/doap>.
-@prefix foaf: <http://xmlns.com/foaf/0.1>.
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema>.
+@prefix lv2: <http://lv2plug.in/ns/lv2core#>.
+@prefix doap: <http://usefulinc.com/ns/doap#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
 <http://github.com/danilobellini/lz2lv2/diff>
   a lv2:Plugin;

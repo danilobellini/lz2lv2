@@ -13,19 +13,24 @@ from collections import OrderedDict
 from audiolazy import Stream, thub
 import os
 
+
+# Common prefixes for Turtle files (only the used ones are stored in output)
 ttl_prefixes = {
-  "lv2"  : "http://lv2plug.in/ns/lv2core",
-  "doap" : "http://usefulinc.com/ns/doap",
-  "foaf" : "http://xmlns.com/foaf/0.1",
-  "rdfs" : "http://www.w3.org/2000/01/rdf-schema",
+  "lv2"  : "http://lv2plug.in/ns/lv2core#",
+  "doap" : "http://usefulinc.com/ns/doap#",
+  "foaf" : "http://xmlns.com/foaf/0.1/",
+  "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
 }
 
+
+# Code preamble to run "prepend" the plugin code to make some values available
 preamble = """
 from audiolazy import *
 s, Hz = sHz(rate)
 ms = 1e-3 * s
 kHz = 1e3 * Hz
 """
+
 
 def run_source(src, fname):
   """
@@ -173,6 +178,14 @@ def ttl_single_uri_data(mdata, start_indent_level=1, indent_size=2,
 def get_prefixes(tokens):
   """
   Returns a list of prefixes used by the given tokens.
+
+  A prefix is detected by the use of a ":" symbol outside a string, which is
+  identified by the starting character: Strings are considered to start with
+  a ``<`` or ``"`` symbol. The prefix, when used, is the whole "token" data
+  before the ":".
+
+  All prefixes need to be declared in a Turtle file. The prefixes available
+  by default are stored in the ttl_prefixes dictionary.
   """
   prefixes = []
   for token in tokens:
